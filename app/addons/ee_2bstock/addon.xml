@@ -1,0 +1,58 @@
+<?xml version="1.0"?>
+<addon scheme="3.0">
+    <id>ee_2bstock</id>
+    <version>1.0.1</version>
+    <status>active</status>
+    <auto_install>MULTIVENDOR,ULTIMATE</auto_install>
+    <default_language>ru</default_language>
+
+    <has_icon>Y</has_icon>
+    <supplier>efimchenko.ru</supplier>
+    <supplier_link>https://efimchenko.ru</supplier_link>
+
+    <settings layout="separate" edition_type="ROOT,ULT:VENDOR">
+        <sections>
+            <section id="general">
+                <items>
+                    <item id="ee_2bstock_check_unique">                      
+                        <type>checkbox</type>
+						<default_value>N</default_value>
+                    </item>				
+                    <item id="ee_2bstock_admin">                      
+                        <type>checkbox</type>
+						<default_value>Y</default_value>
+                    </item>
+                    <item id="ee_2bstock_https">                      
+                        <type>checkbox</type>
+						<default_value>Y</default_value>
+                    </item>
+                    <item id="ee_2bstock_error_log">                      
+                        <type>checkbox</type>
+						<default_value>Y</default_value>
+                    </item>
+                    <item id="ee_2bstock_full_log">                      
+                        <type>checkbox</type>
+						<default_value>Y</default_value>
+                    </item>					
+					<item id="get_trigger_url">
+					   <type>info</type>
+					   <handler>fn_ee_2bstock_get_trigger_url</handler>
+					</item>					
+                </items>
+            </section>
+            <section id="last_request">
+                <items>
+					<item id="get_trigger_url">
+					   <type>info</type>
+					   <handler>fn_ee_2bstock_get_last_request</handler>
+					</item>					
+                </items>
+            </section>				
+        </sections>
+    </settings>
+
+    <functions>
+        <item for="install">fn_ee_2bstock_install</item>
+        <item for="uninstall">fn_ee_2bstock_uninstall</item>
+    </functions>
+</addon>

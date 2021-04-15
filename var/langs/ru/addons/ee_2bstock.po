@@ -1,0 +1,61 @@
+msgid ""
+msgstr "Project-Id-Version: tygh"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language-Team: Russian\n"
+"Language: ru_RU"
+
+msgctxt "Addons::name::ee_2bstock"
+msgid "ee_2bstock_name"
+msgstr "[efimchenko.ru] Расширение API CS-CART"
+
+msgctxt "Addons::description::ee_2bstock"
+msgid "ee_2bstock_description"
+msgstr "Расширяет стандартный механизм API у платформы."
+
+msgctxt "SettingsSections::ee_2bstock::general"
+msgid "ee_2bstock_general"
+msgstr "Общее"
+
+msgctxt "SettingsSections::ee_2bstock::ee_2bstock_check_unique"
+msgid "ee_2bstock_check_unique"
+msgstr "Проверка на уникальность названий"
+
+msgctxt "SettingsTooltips::ee_2bstock::ee_2bstock_check_unique"
+msgid "ee_2bstock_check_unique_tooltip"
+msgstr "Характеристики, варианты характеристик(для каждой отдельно)"
+
+msgctxt "SettingsSections::ee_2bstock::last_request"
+msgid "ee_2bstock_last_request"
+msgstr "Крайний запрос к модулю"
+
+msgctxt "SettingsOptions::ee_2bstock::ee_2bstock_admin"
+msgid "ee_2bstock_admin"
+msgstr "Запросы только от Администратора"
+
+msgctxt "SettingsTooltips::ee_2bstock::ee_2bstock_admin"
+msgid "ee_2bstock_admin_tooltips"
+msgstr "Если ключ пользователя не принадлежит Администратору магазина то будет получена ошибка 401"
+
+msgctxt "SettingsOptions::ee_2bstock::ee_2bstock_https"
+msgid "ee_2bstock_https"
+msgstr "Запросы только на HTTPS"
+
+msgctxt "SettingsTooltips::ee_2bstock::ee_2bstock_https"
+msgid "ee_2bstock_https_tooltips"
+msgstr "Запросы будут приниматься магазином только для HTTPS протокола в ином случае будет получена ошибка 403"
+
+msgctxt "SettingsOptions::ee_2bstock::ee_2bstock_error_log"
+msgid "ee_2bstock_error_log"
+msgstr "Включить запись ошибок обмена в лог"
+
+msgctxt "SettingsTooltips::ee_2bstock::ee_2bstock_error_log"
+msgid "ee_2bstock_error_log_tooltips"
+msgstr "Все возникающие ошибки будут записаны в лог /app/addons/ee_2bstock/Tygh/Addons/EE2bstock/logs/errors.txt"
+
+msgctxt "SettingsOptions::ee_2bstock::ee_2bstock_full_log"
+msgid "ee_2bstock_full_log"
+msgstr "Включить общую запись логов"
+
+msgctxt "SettingsTooltips::ee_2bstock::ee_2bstock_full_log"
+msgid "ee_2bstock_full_log_tooltips"
+msgstr "Все запросы и сгенерированные ответы будут записаны в лог /app/addons/ee_2bstock/Tygh/Addons/EE2bstock/logs/logs.txt"
