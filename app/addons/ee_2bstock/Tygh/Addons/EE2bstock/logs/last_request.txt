@@ -1,0 +1,10 @@
+array (
+  'user' => 'admin@makeshop.pro',
+  'api_key' => 'Ml3179C572b3Jfo03R20GYr9z0l7I23X',
+  'dispatch' => 'ee_2bstock',
+  'CONTENT_TYPE' => 'multipart/form-data',
+  'HTTP_ACCEPT' => 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+  'PHP_AUTH_PW' => 'Ml3179C572b3Jfo03R20GYr9z0l7I23X',
+  'PHP_AUTH_USER' => 'admin@makeshop.pro',
+  'method' => 'POST',
+)

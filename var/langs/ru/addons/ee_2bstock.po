@@ -16,7 +16,7 @@ msgctxt "SettingsSections::ee_2bstock::general"
 msgid "ee_2bstock_general"
 msgstr "Общее"
 
-msgctxt "SettingsSections::ee_2bstock::ee_2bstock_check_unique"
+msgctxt "SettingsOptions::ee_2bstock::ee_2bstock_check_unique"
 msgid "ee_2bstock_check_unique"
 msgstr "Проверка на уникальность названий"
 
