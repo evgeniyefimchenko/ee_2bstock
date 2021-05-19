@@ -58,4 +58,4 @@ msgstr "Включить общую запись логов"
 
 msgctxt "SettingsTooltips::ee_2bstock::ee_2bstock_full_log"
 msgid "ee_2bstock_full_log_tooltips"
-msgstr "Все запросы и сгенерированные ответы будут записаны в лог /app/addons/ee_2bstock/Tygh/Addons/EE2bstock/logs/logs.txt"
+msgstr "Все запросы и сгенерированные ответы будут записаны в лог /app/addons/ee_2bstock/Tygh/Addons/EE2bstock/logs/logs.txt и отданы в ответе клиенту."

@@ -38,7 +38,6 @@ class EE2bstock {
 	public function features() {		
 		$pref = $this->get_pref_func_by_method();
 		$func_name = $pref . '_features';
-		//die($func_name);
 		return $this->template_response($this->$func_name());
 	}
 	
@@ -46,12 +45,13 @@ class EE2bstock {
 	private function get_features() {		
 		$response = [];
 		try {
-			if ((isset($this->data['external_id']) && mb_strlen($this->data['external_id']) > 5) || (isset($this->data['id']) && mb_strlen($this->data['id']) > 0)) {			
-				$response = db_get_row('SELECT * FROM ?:product_features as f, ?:product_features_descriptions as fd, ?:product_features_values as fv
-				WHERE f.feature_id = ?i OR f.external_id LIKE ?s AND f.feature_id = fd.feature_id AND f.feature_id = fv.feature_id GROUP BY f.feature_id LIMIT 1', $v['id'], $this->data['external_id']);
+			if ((isset($this->data['external_id']) && mb_strlen($this->data['external_id']) > 2) || (isset($this->data['id']) && mb_strlen($this->data['id']) > 0)) {											
+				$this->data['id'] = is_numeric($this->data['id']) ? $this->data['id'] : 0;
+				$this->mysqli->real_query('SELECT * FROM ' . $this->cart_config['table_prefix'] . 'product_features as f, ' . $this->cart_config['table_prefix'] . 'product_features_descriptions as fd, ' . $this->cart_config['table_prefix'] . 'product_features_values as fv
+				WHERE f.feature_id = ' . $this->data['id'] . ' OR f.external_id LIKE "' . $this->data['external_id'] . '" AND f.feature_id = fd.feature_id AND f.feature_id = fv.feature_id GROUP BY f.feature_id LIMIT 1');
 			} else {
 				$this->mysqli->real_query('SELECT * FROM ' . $this->cart_config['table_prefix'] . 'product_features as f, ' . $this->cart_config['table_prefix'] . 'product_features_descriptions as fd, ' . $this->cart_config['table_prefix'] . 'product_features_values as fv 
-				WHERE f.feature_id = fd.feature_id AND f.feature_id = fv.feature_id GROUP BY f.feature_id');		
+				WHERE f.feature_id = fd.feature_id AND f.feature_id = fv.feature_id GROUP BY f.feature_id');								
 			}
 			
 			$res_mysqli = $this->mysqli->use_result();			
@@ -59,9 +59,9 @@ class EE2bstock {
 				$response[] = $row;
 			}			
 			
-			if ($response && !empty($response['feature_id'])) { // Одна характеристика, допишем все её варианты
+			if (count($response) == 1 && !empty($response[0]['feature_id'])) { // Одна характеристика, допишем все её варианты
 				$response['variants'] = db_get_array('SELECT * FROM ?:product_feature_variants as v, ?:product_feature_variant_descriptions  as vd
-				WHERE v.feature_id =?i AND vd.variant_id = v.variant_id GROUP BY v.variant_id');
+				WHERE v.feature_id =?i AND vd.variant_id = v.variant_id GROUP BY v.variant_id', $response[0]['feature_id']);
 			}
 		} catch (Exception $e) {
 			$this->error_text = $e->getMessage();
