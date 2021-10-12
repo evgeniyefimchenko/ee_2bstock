@@ -3,29 +3,33 @@ use Tygh\Registry;
 use Tygh\Api\Response;
 use Tygh\Api\Request;
 use Tygh\Addons\EE2bstock\EE2bstock;
-/**
-* admin@makeshop.pro
-* Ml3179C572b3Jfo03R20GYr9z0l7I23X
-*/
+
 $module_oprions = Registry::get('addons.ee_2bstock');
 $log_path = DIR_ROOT . '/app/addons/ee_2bstock/Tygh/Addons/EE2bstock/logs/';
 
 $request = new Request();	
-$content_type = $request->getContentType();
+//$content_type = $request->getContentType();
 $accept_type = $request->getAcceptType();
-$method = $request->getMethod();
+//$method = $request->getMethod();
+$body = json_decode(file_get_contents('php://input'), true);
+if (isset($body['http_method'])) {
+	$method = $body['http_method'];
+} else {
+	$method = 'GET';
+	$body = $_REQUEST;
+}
 unset($request);
 
 $auth['user'] = $_SERVER['PHP_AUTH_USER'] ? $_SERVER['PHP_AUTH_USER'] : $_REQUEST['user'];
 $auth['api_key'] = $_SERVER['PHP_AUTH_PW'] ? $_SERVER['PHP_AUTH_PW'] : $_REQUEST['api_key'];
 
-$_REQUEST['CONTENT_TYPE'] = $content_type;
+$_REQUEST['CONTENT_TYPE'] = $accept_type;
 $_REQUEST['HTTP_ACCEPT'] = $_SERVER['HTTP_ACCEPT'];
 $_REQUEST['PHP_AUTH_PW'] = $auth['api_key'];
 $_REQUEST['PHP_AUTH_USER'] = $auth['user'];
-$_REQUEST['method'] = $method;
 
-//die(var_export($_REQUEST, true));
+//die(var_export(json_decode($body, true), true));
+//die($body);
 
 file_put_contents($log_path . '/last_request.txt', 'Дата: ' . date("Y-m-d H:i:s") . '<br/><br/>', LOCK_EX);
 
@@ -40,11 +44,11 @@ if (!isset($auth['user']) && !isset($auth['user']) && !$error) {
 } else {
 	$user_data = fn_get_api_user($auth['user'], $auth['api_key']);
 	if (isset($user_data['status']) && $user_data['status'] == 'A' || ($module_oprions['ee_2bstock_admin'] == 'Y' && $user_data['user_type'] == 'A')) {
-		if ($content_type != 'application/json' && $module_oprions['ee_2bstock_full_log'] != 'Y') {
-			$resp = ['error' => true, 'status_code' => 400, 'text_error' => 'Неверный формат запроса(content_type).', 'response' => ['REQUEST'=> $_REQUEST]];
+		if ($accept_type != 'application/json' && $module_oprions['ee_2bstock_full_log'] != 'Y') {
+			$resp = ['error' => true, 'status_code' => 400, 'text_error' => 'Неверный формат запроса(content_type=' . $accept_type . ').', 'response' => ['REQUEST'=> $_REQUEST]];
 			$status_response = Response::STATUS_BAD_REQUEST;			
 		} else {
-			$EE2bstock = new EE2bstock($_REQUEST, $method);
+			$EE2bstock = new EE2bstock($body, $method);
 			if (!$EE2bstock->error) {
 				if (isset($mode) && isset($action) && method_exists($EE2bstock, $mode . '_' . $action)) {
 					$func_name = $mode . '_' . $action;

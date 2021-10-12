@@ -32,11 +32,5 @@ function fn_ee_2bstock_get_last_request() {
 		return file_get_contents($log_path);
 	} else {
 		return 'Нет запросов.';
-	}
-	
+	}	
 }
-
-/**
-pavelsur07@gmail.com
-N185R466ftWS602EEH68b3x216gE0v8f
-*/
