@@ -23,17 +23,17 @@ https://example.com/2bstock/features/variants - если переданы extern
 
 -----ХАРАКТЕРИСТИКИ----
 Для методов PUT, POST ожидаются следующие поля:
-        "http_method",
-		"feature_id",
-        "company_id",
+        "http_method", - ОБЯЗАТЕЛЬНЫЙ ДЛЯ ЗАПРОСА PUT/POST ПАРАМЕТР
+		"feature_id", при обновлении если используем в системе тип id int то, проверяем если в БД у этого объекта external_id пустое то заполняем его значением из запроса
+        "company_id",  - ОБЯЗАТЕЛЬНЫЙ ДЛЯ ЗАПРОСА POST ПАРАМЕТР
         "feature_type",
         "parent_id",
         "display_on_product",
         "display_on_catalog",
         "display_on_header",
         "description", - меняет название на сайте
-		"internal_name", - Добавлено поле, для изменения названия в админке 
-        "lang_code",
+		"internal_name", - Добавлено поле, для изменения названия в админке   - ОБЯЗАТЕЛЬНЫЙ ДЛЯ ЗАПРОСА POST ПАРАМЕТР
+        "lang_code",   - ОБЯЗАТЕЛЬНЫЙ ДЛЯ ЗАПРОСА POST ПАРАМЕТР
         "prefix",
         "suffix",
         "categories_path",
@@ -43,4 +43,5 @@ https://example.com/2bstock/features/variants - если переданы extern
         "position",
         "external_id"
 
-Примеры DELETE запросов:
+Для метода DELETE ожидаются следующие поля:
+		"feature_id" - удалит характеристику, все её вариации и привязки к товарам

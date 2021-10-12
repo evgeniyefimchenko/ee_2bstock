@@ -159,7 +159,7 @@ class EE2bstock {
 	private function update_features() {
 		$response = [];
 		try {
-			$data = $this->prepare_features_data();
+			$data = $this->data;
 			if (isset($data['feature_id']) && isset($data['external_id'])) { // (если используем в системе тип id int то, проверяем если в БД у этого объекта external_id пустое то заполняем его значением из запроса)
 				$external_id = db_get_field('SELECT external_id FROM ?:product_features WHERE feature_id = ?i', (int)$data['feature_id']);
 				if (!$external_id || mb_strlen($external_id) < 5) {
@@ -222,7 +222,6 @@ class EE2bstock {
 			}
 			// запрос к таблице product_features_descriptions
 			db_query('UPDATE ?:product_features_descriptions SET ?u ' . $where_query, $field_query);
-			$this->status_code = 201;
 		} catch (Exception $e) {
 			$this->error_text = $e->getMessage();
 			$this->error = true;
@@ -233,9 +232,33 @@ class EE2bstock {
 	
 	private function create_features() {
 		$response = [];
+		$data = $this->data;
 		try {
-			$data = $this->prepare_features_data();
-			$response['create_features'] = 'OK';
+			// query product_features
+			$arr_fields = ['external_id', 'company_id', 'feature_type', 'parent_id', 'display_on_product', 'display_on_catalog', 'display_on_header', 'status', 'comparison' ,'position'];
+			// подготовим допустимые поля для таблицы product_features
+			foreach ($arr_fields as $item) {
+				foreach ($data as $k => $v) {
+					if ($k == $item && mb_strlen($v) > 0) {
+						$field_query[$k] = $v;
+					}
+				}
+			}
+			// запрос к таблице product_features
+			$feature_id = db_query("INSERT INTO ?:product_features ?e", $field_query);
+			// query product_features_descriptions
+			$arr_fields = ['description', 'full_description', 'prefix', 'suffix', 'lang_code', 'internal_name'];
+			// подготовим допустимые поля для таблицы product_features_descriptions
+			foreach ($arr_fields as $item) {
+				foreach ($data as $k => $v) {
+					if ($k == $item && mb_strlen($v) > 0) {
+						$field_query[$k] = $v;
+					}
+				}
+			}
+			$field_query['feature_id'] = $feature_id;
+			// запрос к таблице product_features_descriptions
+			db_query("INSERT INTO ?:product_features_descriptions ?e", $field_query);			
 		} catch (Exception $e) {
 			$this->error_text = $e->getMessage();
 			$this->error = true;
@@ -247,73 +270,23 @@ class EE2bstock {
 	private function dell_features() {
 		$response = [];
 		try {
-			$response['dell_features'] = 'OK';
+			db_query("DELETE FROM ?:product_features WHERE feature_id = ?i", $this->data['feature_id']);
+			db_query("DELETE FROM ?:product_features_descriptions WHERE feature_id = ?i", $this->data['feature_id']);
+			$variant_ids = db_get_fields("SELECT variant_id FROM ?:product_feature_variants WHERE feature_id = ?i", $this->data['feature_id']);
+			db_query("DELETE FROM ?:product_features_values WHERE feature_id = ?i", $this->data['feature_id']);
+			if (!empty($variant_ids)) {
+				db_query("DELETE FROM ?:product_features_values WHERE variant_id IN (?n)", $variant_ids);
+				db_query("DELETE FROM ?:product_feature_variants WHERE variant_id IN (?n)", $variant_ids);
+				db_query("DELETE FROM ?:product_feature_variant_descriptions WHERE variant_id IN (?n)", $variant_ids);
+				foreach ($variant_ids as $variant_id) {
+					fn_delete_image_pairs($variant_id, 'feature_variant');
+				}
+			}
 		} catch (Exception $e) {
 			$this->error_text = $e->getMessage();
 			$this->error = true;
 			$this->status_code = Response::STATUS_INTERNAL_SERVER_ERROR;
 		}		
-	}
-	
-	// подготовим данные для характеристики
-	private function prepare_features_data() {
-		$data = [];
-		
-		if (isset($this->data['feature_id']) && mb_strlen($this->data['feature_id']) > 0) {
-			$data['feature_id'] = $this->data['feature_id'];
-		}		
-		if (isset($this->data['company_id']) && mb_strlen($this->data['company_id']) > 0) {
-			$data['company_id'] = $this->data['company_id'];
-		}		
-		if (isset($this->data['feature_type']) && mb_strlen($this->data['feature_type']) > 0) {
-			$data['feature_type'] = $this->data['feature_type'];
-		}		
-		if (isset($this->data['parent_id']) && mb_strlen($this->data['parent_id']) > 0) {
-			$data['parent_id'] = $this->data['parent_id'];
-		}		
-		if (isset($this->data['display_on_product']) && mb_strlen($this->data['display_on_product']) > 0) {
-			$data['display_on_product'] = $this->data['display_on_product'];
-		}		
-		if (isset($this->data['display_on_catalog']) && mb_strlen($this->data['display_on_catalog']) > 0) {
-			$data['display_on_catalog'] = $this->data['display_on_catalog'];
-		}		
-		if (isset($this->data['display_on_header']) && mb_strlen($this->data['display_on_header']) > 0) {
-			$data['display_on_header'] = $this->data['display_on_header'];
-		}		
-		if (isset($this->data['description']) && mb_strlen($this->data['description']) > 0) {
-			$data['description'] = $this->data['description'];
-		}
-		if (isset($this->data['internal_name']) && mb_strlen($this->data['internal_name']) > 0) {
-			$data['internal_name'] = $this->data['internal_name'];
-		}		
-		if (isset($this->data['lang_code']) && mb_strlen($this->data['lang_code']) > 0) {
-			$data['lang_code'] = $this->data['lang_code'];
-		}		
-		if (isset($this->data['prefix']) && mb_strlen($this->data['prefix']) > 0) {
-			$data['prefix'] = $this->data['prefix'];
-		}		
-		if (isset($this->data['suffix']) && mb_strlen($this->data['suffix']) > 0) {
-			$data['suffix'] = $this->data['suffix'];
-		}		
-		if (isset($this->data['categories_path']) && mb_strlen($this->data['categories_path']) > 0) {
-			$data['categories_path'] = $this->data['categories_path'];
-		}		
-		if (isset($this->data['full_description']) && mb_strlen($this->data['full_description']) > 0) {
-			$data['full_description'] = $this->data['full_description'];
-		}		
-		if (isset($this->data['status']) && mb_strlen($this->data['status']) > 0) {
-			$data['status'] = $this->data['status'];
-		}		
-		if (isset($this->data['comparison']) && mb_strlen($this->data['comparison']) > 0) {
-			$data['comparison'] = $this->data['comparison'];
-		}		
-		if (isset($this->data['position']) && mb_strlen($this->data['position']) > 0) {
-			$data['position'] = $this->data['position'];
-		}		
-		if (isset($this->data['external_id']) && mb_strlen($this->data['external_id']) > 0) {
-			$data['external_id'] = $this->data['external_id'];
-		}
-		return $data;		
 	}
 	
 	// Вернёт префикс функции исходя из метода запроса

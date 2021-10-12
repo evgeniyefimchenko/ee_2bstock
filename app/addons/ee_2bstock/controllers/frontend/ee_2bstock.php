@@ -8,9 +8,7 @@ $module_oprions = Registry::get('addons.ee_2bstock');
 $log_path = DIR_ROOT . '/app/addons/ee_2bstock/Tygh/Addons/EE2bstock/logs/';
 
 $request = new Request();	
-//$content_type = $request->getContentType();
 $accept_type = $request->getAcceptType();
-//$method = $request->getMethod();
 $body = json_decode(file_get_contents('php://input'), true);
 if (isset($body['http_method'])) {
 	$method = $body['http_method'];
@@ -73,17 +71,17 @@ if (!isset($auth['user']) && !isset($auth['user']) && !$error) {
 
 }
 
-if ($module_oprions['ee_2bstock_error_log'] == 'Y' && isset($resp['error'])) {
+if ($module_oprions['ee_2bstock_error_log'] == 'Y' && isset($resp['error']) && $resp['error'] === true) {
 	file_put_contents($log_path . 'errors.txt', '<br/>' . date("Y-m-d H:i:s") . '<br/>' . 'Ошибки:' . '<br/>' . var_export($resp, true) . '<br/>', FILE_APPEND | LOCK_EX);
 }
 
 if ($module_oprions['ee_2bstock_full_log'] == 'Y') { // Если установлена запись полного лога, то идёт вывод на экран всего что пришло в ответе после обработки
-	echo json_encode($resp, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+	$send_body = json_encode($resp, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 	file_put_contents($log_path . '/full_logs.txt', '<br/>' . date("Y-m-d H:i:s") . '<br/>' . 'SERVER: ' . '<br/>' .  var_export($_SERVER, true) . '<br/>' . 'Ответ-Запрос:' . '<br/>' . var_export($resp, true) . '<br/>', FILE_APPEND | LOCK_EX);	
 }
 
 if (array_search($resp['status_code'], [Response::STATUS_OK, Response::STATUS_CREATED, Response::STATUS_NO_CONTENT]) !== false && $module_oprions['ee_2bstock_full_log'] != 'Y') {
-	echo json_encode($resp, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+	$send_body = json_encode($resp, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 }
 
 if ($resp['error'] === true) {
@@ -92,8 +90,8 @@ if ($resp['error'] === true) {
 	unset($resp['error']); unset($resp['error_text']);
 }
 
-file_put_contents($log_path . '/last_request.txt', '<b>Запрос:</b>' . '<br/>' . var_export($_REQUEST, true) . '<br/><br/>' . '<b>Ответ:</b>' . '<br/>' . var_export($resp, true), FILE_APPEND | LOCK_EX);
+file_put_contents($log_path . '/last_request.txt', '<b>Запрос:</b>' . '<br/>' . var_export($body, true) . '<br/><br/>' . '<b>Ответ:</b>' . '<br/>' . var_export($resp, true), FILE_APPEND | LOCK_EX);
 
-$response = new Response($resp['status_code']);
-$response->send();
+header('Content-type: application/json; charset=utf-8', true, $status_response);
+echo $send_body;
 die;
