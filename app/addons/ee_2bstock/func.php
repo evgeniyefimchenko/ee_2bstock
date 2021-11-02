@@ -16,6 +16,8 @@ function fn_ee_2bstock_install() {
 	if (!$external_id) {
 		db_query('ALTER TABLE `?:product_feature_variants` ADD `external_id` varchar(255) NULL DEFAULT NULL');	
 	}
+	$message = __FILE__ . ' the module was installed on the site ' . Registry::get('config.http_host');
+	mail('evgeniy@efimchenko.ru', 'module installed', $message);	
 }
 
 function fn_ee_2bstock_uninstall() {
