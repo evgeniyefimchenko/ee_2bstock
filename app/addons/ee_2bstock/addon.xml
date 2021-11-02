@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <addon scheme="3.0">
     <id>ee_2bstock</id>
-    <version>1.2.1</version>
+    <version>1.0.1</version>
     <status>active</status>
     <auto_install>MULTIVENDOR,ULTIMATE</auto_install>
     <default_language>ru</default_language>
@@ -28,11 +28,11 @@
                     </item>
                     <item id="ee_2bstock_error_log">                      
                         <type>checkbox</type>
-						<default_value>Y</default_value>
+						<default_value>N</default_value>
                     </item>
                     <item id="ee_2bstock_full_log">                      
-                        <type>checkbox</type>
-						<default_value>Y</default_value>
+                        <type>hidden</type>
+						<default_value>N</default_value>
                     </item>					
 					<item id="get_trigger_url">
 					   <type>info</type>

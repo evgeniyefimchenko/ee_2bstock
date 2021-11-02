@@ -29,7 +29,7 @@ function fn_ee_2bstock_get_trigger_url() {
 function fn_ee_2bstock_get_last_request() {
 	$log_path = __DIR__ . '/Tygh/Addons/EE2bstock/logs/last_request.txt';
 	if (file_exists($log_path)) {
-		return file_get_contents($log_path);
+		return '<pre>' . file_get_contents($log_path) . '</pre>';
 	} else {
 		return 'Нет запросов.';
 	}	

@@ -60,14 +60,6 @@ class EE2bstock {
 		try {
 			if ((isset($this->data['external_id']) && mb_strlen($this->data['external_id']) > 2) || (isset($this->data['id']) && mb_strlen($this->data['id']) > 0)) {
 				$this->data['id'] = is_numeric($this->data['id']) ? $this->data['id'] : 0;
-				/*$this->mysqli->real_query('SELECT * FROM ' . $this->cart_config['table_prefix'] . 'product_features as f, ' . $this->cart_config['table_prefix'] . 'product_features_descriptions as fd, ' . $this->cart_config['table_prefix'] . 'product_features_values as fv
-				WHERE f.feature_id = ' . $this->data['id'] . ' OR f.external_id LIKE "' . $this->data['external_id'] . '" AND f.feature_id = fd.feature_id AND f.feature_id = fv.feature_id GROUP BY f.feature_id LIMIT 1');
-				$res_mysqli = $this->mysqli->use_result();
-				while ($row = $res_mysqli->fetch_assoc()) {
-					$response[] = $row;
-				}
-				$response['variants'] = db_get_array('SELECT * FROM ?:product_feature_variants as v, ?:product_feature_variant_descriptions  as vd
-				WHERE v.feature_id = ?i AND vd.variant_id = v.variant_id GROUP BY v.variant_id', $response[0]['feature_id']);*/
 				if ($this->data['id']) {
 					$add_query = ' v.variant_id = ' . $this->data['id'] . ' ';
 				} else {
@@ -90,8 +82,71 @@ class EE2bstock {
 	private function update_variants() {
 		$response = [];
 		try {
-			$this->clean_variants_params();
-			die('UPDATE VARIANTS');
+			foreach ($this->data['values'] as $data) {
+				$field_query = [];
+				if (isset($data['variant_id']) && isset($data['external_id']) && mb_strlen($data['external_id']) > 5) { // (если используем в системе тип id int то, проверяем если в БД у этого объекта external_id пустое то заполняем его значением из запроса)
+					$external_id = db_get_field('SELECT external_id FROM ?:product_feature_variants WHERE variant_id = ?i', (int)$data['variant_id']);
+					if (!$external_id || mb_strlen($external_id) < 5) {
+						db_query('UPDATE ?:product_feature_variants SET external_id = ?s WHERE variant_id = ?i', $data['external_id'], (int)$data['variant_id']);
+					}
+				}
+				// query product_feature_variants
+				$arr_fields = ['variant_id', 'external_id', 'url', 'color', 'position'];
+				// подготовим допустимые поля для таблицы product_feature_variants
+				foreach ($arr_fields as $item) {
+					foreach ($data as $k => $v) {
+						if ($k == $item && mb_strlen($v) > 0) {
+							$field_query[$k] = $v;
+						}
+					}
+				}
+				// соберём WHERE для запроса
+				if (isset($field_query['external_id'])) {
+					$where_query = 'WHERE external_id LIKE ' . $field_query['external_id'];
+					unset($field_query['external_id']);
+				} elseif (isset($field_query['variant_id'])) {
+					$where_query = 'WHERE variant_id = ' . $field_query['variant_id'];
+					unset($field_query['variant_id']);
+				} else {
+					$this->error = true;
+					$this->error_text = 'нет ни одного идентификатора для запроса к product_feature_variants(variant_id, external_id)';
+					$this->status_code = 400;
+					return $response;
+				}
+				// запрос к таблице product_feature_variants
+				db_query('UPDATE ?:product_feature_variants SET ?u ' . $where_query, $field_query);
+				
+				// query product_feature_variant_descriptions
+				$arr_fields = ['description', 'variant', 'page_title', 'meta_keywords', 'meta_description', 'lang_code'];
+				// подготовим допустимые поля для таблицы product_feature_variant_descriptions
+				foreach ($arr_fields as $item) {
+					foreach ($data as $k => $v) {
+						if ($k == $item && mb_strlen($v) > 0) {
+							$field_query[$k] = $v;
+						}
+					}
+				}
+				// соберём WHERE для запроса
+				if (isset($data['external_id'])) {
+					$variant_id = db_get_field('SELECT variant_id FROM ?:product_feature_variant_descriptions LIKE ?s', $data['external_id']);
+					if (!$variant_id) {
+						$this->error = true;
+						$this->error_text = 'не удалось найти variant_id по переданному external_id в таблице product_feature_variant_descriptions';
+						$this->status_code = 400;
+						return $response;					
+					}
+					$where_query = 'WHERE variant_id = ' . $variant_id;
+				} elseif (isset($data['variant_id'])) {
+					$where_query = 'WHERE variant_id = ' . $data['variant_id'];
+				} else {
+					$this->error = true;
+					$this->error_text = 'нет ни одного идентификатора для запроса к product_feature_variant_descriptions(variant_id, external_id)';
+					$this->status_code = 400;
+					return $response;
+				}
+				// запрос к таблице product_feature_variant_descriptions
+				db_query('UPDATE ?:product_feature_variant_descriptions SET ?u ' . $where_query, $field_query);
+			}
 		} catch (Exception $e) {
 			$this->error_text = $e->getMessage();
 			$this->error = true;
@@ -102,7 +157,37 @@ class EE2bstock {
 	private function create_variants() {
 		$response = [];
 		try {
-			
+			foreach ($this->data['values'] as $data) {
+				if ($this->module_oprions['ee_2bstock_check_unique'] == 'Y' && db_get_field('SELECT variant_id FROM ?:product_feature_variant_descriptions WHERE variant LIKE ?s', $data['variant'])) {
+					continue;
+				}
+				$field_query = [];
+				// query product_feature_variants
+				$arr_fields = ['external_id', 'feature_id', 'url', 'color', 'position'];
+				// подготовим допустимые поля для таблицы product_feature_variants
+				foreach ($arr_fields as $item) {
+					foreach ($data as $k => $v) {
+						if ($k == $item && mb_strlen($v) > 0) {
+							$field_query[$k] = $v;
+						}
+					}
+				}
+				// запрос к таблице product_feature_variants
+				$variant_id = db_query("INSERT INTO ?:product_feature_variants ?e", $field_query);
+				// query product_feature_variant_descriptions
+				$arr_fields = ['description', 'variant', 'page_title', 'meta_keywords', 'meta_description', 'lang_code'];
+				// подготовим допустимые поля для таблицы product_feature_variant_descriptions
+				foreach ($arr_fields as $item) {
+					foreach ($data as $k => $v) {
+						if ($k == $item && mb_strlen($v) > 0) {
+							$field_query[$k] = $v;
+						}
+					}
+				}
+				$field_query['variant_id'] = $feature_id;
+				// запрос к таблице product_feature_variant_descriptions
+				db_query("INSERT INTO ?:product_feature_variant_descriptions ?e", $field_query);				
+			}
 		} catch (Exception $e) {
 			$this->error_text = $e->getMessage();
 			$this->error = true;
@@ -113,17 +198,14 @@ class EE2bstock {
 	private function dell_variants() {
 		$response = [];
 		try {
-			
+			db_query("DELETE FROM ?:product_feature_variants WHERE variant_id = ?i", $this->data['variant_id']);
+			db_query("DELETE FROM ?:product_feature_variant_descriptions WHERE variant_id = ?i", $this->data['variant_id']);
+			db_query("DELETE FROM ?:product_features_values WHERE variant_id = ?i", $this->data['variant_id']);
 		} catch (Exception $e) {
 			$this->error_text = $e->getMessage();
 			$this->error = true;
 			$this->status_code = Response::STATUS_INTERNAL_SERVER_ERROR;
 		}		
-	}
-	
-	// Очистит параметры вариаций
-	private function clean_variants_params() {
-		
 	}
 	
 	// Функции характеристик
@@ -159,69 +241,71 @@ class EE2bstock {
 	private function update_features() {
 		$response = [];
 		try {
-			$data = $this->data;
-			if (isset($data['feature_id']) && isset($data['external_id'])) { // (если используем в системе тип id int то, проверяем если в БД у этого объекта external_id пустое то заполняем его значением из запроса)
-				$external_id = db_get_field('SELECT external_id FROM ?:product_features WHERE feature_id = ?i', (int)$data['feature_id']);
-				if (!$external_id || mb_strlen($external_id) < 5) {
-					db_query('UPDATE ?:product_features SET external_id = ?s WHERE feature_id = ?i', $data['external_id'], (int)$data['feature_id']);
-				}
-			}
-			// query product_features
-			$arr_fields = ['feature_id', 'external_id', 'company_id', 'feature_type', 'parent_id', 'display_on_product', 'display_on_catalog', 'display_on_header', 'status', 'comparison' ,'position'];
-			// подготовим допустимые поля для таблицы product_features
-			foreach ($arr_fields as $item) {
-				foreach ($data as $k => $v) {
-					if ($k == $item && mb_strlen($v) > 0) {
-						$field_query[$k] = $v;
+			foreach ($this->data['values'] as $data) {
+				$field_query = [];
+				if (isset($data['feature_id']) && isset($data['external_id']) && mb_strlen($data['external_id']) > 5) { // (если используем в системе тип id int то, проверяем если в БД у этого объекта external_id пустое то заполняем его значением из запроса)
+					$external_id = db_get_field('SELECT external_id FROM ?:product_features WHERE feature_id = ?i', (int)$data['feature_id']);
+					if (!$external_id || mb_strlen($external_id) < 5) {
+						db_query('UPDATE ?:product_features SET external_id = ?s WHERE feature_id = ?i', $data['external_id'], (int)$data['feature_id']);
 					}
 				}
-			}
-			// соберём WHERE для запроса
-			if (isset($field_query['external_id'])) {
-				$where_query = 'WHERE external_id LIKE ' . $field_query['external_id'];
-				unset($field_query['external_id']);
-			} elseif (isset($field_query['feature_id'])) {
-				$where_query = 'WHERE feature_id = ' . $field_query['feature_id'];
-				unset($field_query['feature_id']);
-			} else {
-				$this->error = true;
-				$this->error_text = 'нет ни одного идентификатора для запроса к product_features(feature_id, external_id)';
-				$this->status_code = 400;
-				return $response;
-			}
-			// запрос к таблице product_features
-			db_query('UPDATE ?:product_features SET ?u ' . $where_query, $field_query);
-			
-			// query product_features_descriptions
-			$arr_fields = ['description', 'full_description', 'prefix', 'suffix', 'lang_code', 'internal_name'];
-			// подготовим допустимые поля для таблицы product_features_descriptions
-			foreach ($arr_fields as $item) {
-				foreach ($data as $k => $v) {
-					if ($k == $item && mb_strlen($v) > 0) {
-						$field_query[$k] = $v;
+				// query product_features
+				$arr_fields = ['feature_id', 'external_id', 'company_id', 'feature_type', 'parent_id', 'display_on_product', 'display_on_catalog', 'display_on_header', 'status', 'comparison' ,'position'];
+				// подготовим допустимые поля для таблицы product_features
+				foreach ($arr_fields as $item) {
+					foreach ($data as $k => $v) {
+						if ($k == $item && mb_strlen($v) > 0) {
+							$field_query[$k] = $v;
+						}
 					}
 				}
-			}
-			// соберём WHERE для запроса
-			if (isset($data['external_id'])) {
-				$feature_id = db_get_field('SELECT feature_id FROM ?:product_features LIKE ?s', $data['external_id']);
-				if (!$feature_id) {
+				// соберём WHERE для запроса
+				if (isset($field_query['external_id'])) {
+					$where_query = 'WHERE external_id LIKE ' . $field_query['external_id'];
+					unset($field_query['external_id']);
+				} elseif (isset($field_query['feature_id'])) {
+					$where_query = 'WHERE feature_id = ' . $field_query['feature_id'];
+					unset($field_query['feature_id']);
+				} else {
 					$this->error = true;
-					$this->error_text = 'не удалось найти feature_id по переданному external_id в таблице product_features';
+					$this->error_text = 'нет ни одного идентификатора для запроса к product_features(feature_id, external_id)';
 					$this->status_code = 400;
-					return $response;					
+					return $response;
 				}
-				$where_query = 'WHERE feature_id = ' . $feature_id;
-			} elseif (isset($data['feature_id'])) {
-				$where_query = 'WHERE feature_id = ' . $data['feature_id'];
-			} else {
-				$this->error = true;
-				$this->error_text = 'нет ни одного идентификатора для запроса к product_features_descriptions(feature_id, external_id)';
-				$this->status_code = 400;
-				return $response;
+				// запрос к таблице product_features
+				db_query('UPDATE ?:product_features SET ?u ' . $where_query, $field_query);
+				
+				// query product_features_descriptions
+				$arr_fields = ['description', 'full_description', 'prefix', 'suffix', 'lang_code', 'internal_name'];
+				// подготовим допустимые поля для таблицы product_features_descriptions
+				foreach ($arr_fields as $item) {
+					foreach ($data as $k => $v) {
+						if ($k == $item && mb_strlen($v) > 0) {
+							$field_query[$k] = $v;
+						}
+					}
+				}
+				// соберём WHERE для запроса
+				if (isset($data['external_id'])) {
+					$feature_id = db_get_field('SELECT feature_id FROM ?:product_features LIKE ?s', $data['external_id']);
+					if (!$feature_id) {
+						$this->error = true;
+						$this->error_text = 'не удалось найти feature_id по переданному external_id в таблице product_features';
+						$this->status_code = 400;
+						return $response;					
+					}
+					$where_query = 'WHERE feature_id = ' . $feature_id;
+				} elseif (isset($data['feature_id'])) {
+					$where_query = 'WHERE feature_id = ' . $data['feature_id'];
+				} else {
+					$this->error = true;
+					$this->error_text = 'нет ни одного идентификатора для запроса к product_features_descriptions(feature_id, external_id)';
+					$this->status_code = 400;
+					return $response;
+				}
+				// запрос к таблице product_features_descriptions
+				db_query('UPDATE ?:product_features_descriptions SET ?u ' . $where_query, $field_query);
 			}
-			// запрос к таблице product_features_descriptions
-			db_query('UPDATE ?:product_features_descriptions SET ?u ' . $where_query, $field_query);
 		} catch (Exception $e) {
 			$this->error_text = $e->getMessage();
 			$this->error = true;
@@ -232,33 +316,38 @@ class EE2bstock {
 	
 	private function create_features() {
 		$response = [];
-		$data = $this->data;
 		try {
-			// query product_features
-			$arr_fields = ['external_id', 'company_id', 'feature_type', 'parent_id', 'display_on_product', 'display_on_catalog', 'display_on_header', 'status', 'comparison' ,'position'];
-			// подготовим допустимые поля для таблицы product_features
-			foreach ($arr_fields as $item) {
-				foreach ($data as $k => $v) {
-					if ($k == $item && mb_strlen($v) > 0) {
-						$field_query[$k] = $v;
+			foreach ($this->data['values'] as $data) {
+				if ($this->module_oprions['ee_2bstock_check_unique'] == 'Y' && db_get_field('SELECT feature_id FROM ?:product_features_descriptions WHERE internal_name LIKE ?s', $data['internal_name'])) {
+					continue;
+				}				
+				$field_query = [];
+				// query product_features
+				$arr_fields = ['external_id', 'company_id', 'feature_type', 'parent_id', 'display_on_product', 'display_on_catalog', 'display_on_header', 'status', 'comparison' ,'position'];
+				// подготовим допустимые поля для таблицы product_features
+				foreach ($arr_fields as $item) {
+					foreach ($data as $k => $v) {
+						if ($k == $item && mb_strlen($v) > 0) {
+							$field_query[$k] = $v;
+						}
 					}
 				}
-			}
-			// запрос к таблице product_features
-			$feature_id = db_query("INSERT INTO ?:product_features ?e", $field_query);
-			// query product_features_descriptions
-			$arr_fields = ['description', 'full_description', 'prefix', 'suffix', 'lang_code', 'internal_name'];
-			// подготовим допустимые поля для таблицы product_features_descriptions
-			foreach ($arr_fields as $item) {
-				foreach ($data as $k => $v) {
-					if ($k == $item && mb_strlen($v) > 0) {
-						$field_query[$k] = $v;
+				// запрос к таблице product_features
+				$feature_id = db_query("INSERT INTO ?:product_features ?e", $field_query);
+				// query product_features_descriptions
+				$arr_fields = ['description', 'full_description', 'prefix', 'suffix', 'lang_code', 'internal_name'];
+				// подготовим допустимые поля для таблицы product_features_descriptions
+				foreach ($arr_fields as $item) {
+					foreach ($data as $k => $v) {
+						if ($k == $item && mb_strlen($v) > 0) {
+							$field_query[$k] = $v;
+						}
 					}
 				}
+				$field_query['feature_id'] = $feature_id;
+				// запрос к таблице product_features_descriptions
+				db_query("INSERT INTO ?:product_features_descriptions ?e", $field_query);
 			}
-			$field_query['feature_id'] = $feature_id;
-			// запрос к таблице product_features_descriptions
-			db_query("INSERT INTO ?:product_features_descriptions ?e", $field_query);			
 		} catch (Exception $e) {
 			$this->error_text = $e->getMessage();
 			$this->error = true;
@@ -304,6 +393,8 @@ class EE2bstock {
 			case 'DELETE':
 				$response = 'dell';
 				break;
+			default:
+				$response = 'get';				
 		}
 		return $response;		
 	}
